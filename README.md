@@ -8,6 +8,7 @@ This project sets up a **streaming** data pipeline using Docker Compose to orche
 - Kafka ingests streaming events that Spark reads, processes, and writes into Cassandra tables.
 - Cassandra stores the processed data in the `spark_streams` keyspace.
 - Jupyter connects to Cassandra to explore and visualize the data with pandas.
+<img width="1023" height="867" alt="image" src="https://github.com/user-attachments/assets/18113827-7e5e-4019-8441-84bf286c2465" />
 
 ## Service URLs
 
