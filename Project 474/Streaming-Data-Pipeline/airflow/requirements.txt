@@ -1,0 +1,58 @@
+# === Core async libraries ===
+aiohttp==3.9.4
+aiosignal==1.3.1
+anyio==4.0.0
+async-timeout==4.0.3
+multidict==6.0.4
+yarl==1.9.2
+frozenlist==1.4.0
+
+# === Airflow & Providers ===
+apache-airflow==2.7.3
+apache-airflow-providers-ftp
+apache-airflow-providers-http
+apache-airflow-providers-imap
+apache-airflow-providers-sqlite
+apache-airflow-providers-common-sql
+
+# === Spark ===
+pyspark==3.5.1
+
+# === Kafka Client ===
+kafka-python==2.0.2
+
+# === Flask + Web ===
+Flask==2.2.5
+Flask-AppBuilder==4.3.6
+Flask-Babel==2.0.0
+Flask-Caching==2.0.2
+Flask-JWT-Extended==4.5.2
+Flask-Login==0.6.2
+Flask-Session==0.5.0
+Flask-SQLAlchemy==2.5.1
+Flask-WTF==1.1.1
+Jinja2==3.1.2
+Werkzeug==2.2.3
+
+# === Database / ORM / Marshmallow ===
+SQLAlchemy==1.4.49
+SQLAlchemy-JSONField==1.0.1.post0
+SQLAlchemy-Utils==0.41.1
+marshmallow==3.20.1
+marshmallow-oneofschema==3.0.1
+marshmallow-sqlalchemy==0.26.1
+alembic==1.12.0
+cassandra-driver==3.29.1
+
+# === Networking / Requests ===
+requests==2.31.0
+httpx==0.24.1
+httpcore==0.17.3
+
+# === Miscellaneous ===
+jsonschema==4.19.0
+protobuf==4.24.2
+python-dateutil==2.8.2
+pytz==2023.3
+PyYAML==6.0.1
+six==1.16.0

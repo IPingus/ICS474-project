@@ -1,0 +1,287 @@
+version: '3.8'
+
+services:
+  # ---------------- Zookeeper ----------------
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper
+    hostname: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo 'ruok' | nc localhost 2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - confluent
+
+  # ---------------- Kafka Broker ----------------
+  broker:
+    image: confluentinc/cp-server:7.4.0
+    container_name: broker
+    hostname: broker
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+      - "9101:9101"
+    environment:
+      # --- Kafka Broker Configuration ---
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_JMX_PORT: 9101
+      
+      # --- Confluent Metrics Reporter Configuration (Corrected) ---
+      # (1) เปิดใช้งาน Metrics Reporter
+      KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
+      
+      # (2) บอก Reporter ว่าจะส่งข้อมูลไปที่ Kafka broker ตัวไหน
+      KAFKA_CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: broker:29092
+      
+      # (3) ตั้งค่า Replication Factor สำหรับ Metrics Topic (สำคัญมากสำหรับ Single-Node)
+      KAFKA_CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+    healthcheck:
+      test: ["CMD", "bash", "-c", "nc -z broker 9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - confluent
+
+  # ---------------- Schema Registry ----------------
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.4.0
+    container_name: schema-registry
+    hostname: schema-registry
+    depends_on:
+      broker:
+        condition: service_healthy
+    ports:
+      - "18081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: broker:29092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - confluent
+
+  # ---------------- Control Center ----------------
+  control-center:
+    image: confluentinc/cp-enterprise-control-center:7.4.0
+    container_name: control-center
+    hostname: control-center
+    depends_on:
+      broker:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    ports:
+      - "9021:9021"
+    environment:
+      CONTROL_CENTER_BOOTSTRAP_SERVERS: broker:29092
+      CONTROL_CENTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      CONTROL_CENTER_REPLICATION_FACTOR: 1
+      CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1
+      CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS: 1
+      CONFLUENT_METRICS_ENABLE: 'true'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9021/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - confluent
+
+  # ---------------- PostgreSQL (Airflow metadata) ----------------
+  postgres:
+    image: postgres:14
+    container_name: airflow-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_db_volume:/var/lib/postgresql/data
+    networks:
+      - confluent
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 5
+
+  # ---------------- Airflow Init ----------------
+  airflow-init:
+      build: ./airflow
+      container_name: airflow-init
+      command: bash -c "
+          sleep 10;
+          if [ -f /opt/airflow/requirements.txt ]; then
+            pip install --upgrade pip && pip install --no-cache-dir -r /opt/airflow/requirements.txt;
+          fi;
+          airflow db init;
+          airflow users create --username admin --firstname admin --lastname admin --role Admin --email admin@example.com --password admin || true;
+          airflow db upgrade;
+          echo 'Airflow Init Completed'
+        "
+      environment:
+        - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+        - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+        - AIRFLOW__WEBSERVER__SECRET_KEY=supersecret
+      volumes:
+        - ./dags:/opt/airflow/dags
+        - ./logs:/opt/airflow/logs
+        - ./plugins:/opt/airflow/plugins
+        - ./airflow/requirements.txt:/opt/airflow/requirements.txt
+      depends_on:
+        postgres:
+          condition: service_healthy
+        cassandra_db:
+          condition: service_healthy
+      networks:
+        - confluent
+
+  # ---------------- Airflow Webserver ----------------
+  webserver:
+    build: ./airflow
+    container_name: airflow-webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      - AIRFLOW__WEBSERVER__SECRET_KEY=supersecret
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      broker:
+        condition: service_healthy
+      cassandra_db:
+        condition: service_healthy
+    networks:
+      - confluent
+
+  # ---------------- Airflow Scheduler ----------------
+  scheduler:
+    build: ./airflow
+    container_name: airflow-scheduler
+    command: scheduler
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      broker:
+        condition: service_healthy
+      cassandra_db:
+        condition: service_healthy
+    networks:
+      - confluent
+
+  # ---------------- Spark Master ----------------
+  spark-master:
+    image: apache/spark:3.4.1-scala2.12-java11-python3-ubuntu
+    container_name: spark-master
+    environment:
+      - SPARK_MODE=master
+    ports:
+      - "7077:7077"
+      - "8081:8080"
+    networks:
+      - confluent
+
+  # ---------------- Spark Worker ----------------
+  spark-worker:
+    image: apache/spark:3.4.1-scala2.12-java11-python3-ubuntu
+    container_name: spark-worker
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    depends_on:
+      - spark-master
+    networks:
+      - confluent
+
+  # ---------------- JupyterLab ----------------
+  jupyter:
+    build: ./jupyter
+    container_name: jupyter
+    ports:
+      - "${JUPYTER_PORT:-8888}:8888"
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    volumes:
+      - ./notebooks:/home/jovyan/work
+    command: start-notebook.sh --NotebookApp.token='${JUPYTER_TOKEN:-}'
+    depends_on:
+      - spark-master
+      - cassandra_db
+    networks:
+      - confluent
+
+  # ---------------- Cassandra Database ----------------
+  cassandra_db:
+    image: cassandra:latest
+    container_name: cassandra
+    hostname: cassandra
+    ports:
+      - "9042:9042"
+    environment:
+      - MAX_HEAP_SIZE=512M
+      - HEAP_NEWSIZE=100M
+      - CASSANDRA_USERNAME=cassandra
+      - CASSANDRA_PASSWORD=cassandra
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    networks:
+      - confluent
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -u cassandra -p cassandra -e 'describe keyspaces'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  
+  # ---------------- Kafka Producer ----------------
+  producer:
+    build: ./producer
+    depends_on:
+      broker:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - confluent
+
+networks:
+  confluent:
+    driver: bridge
+
+volumes:
+  postgres_db_volume:
+  cassandra_data:

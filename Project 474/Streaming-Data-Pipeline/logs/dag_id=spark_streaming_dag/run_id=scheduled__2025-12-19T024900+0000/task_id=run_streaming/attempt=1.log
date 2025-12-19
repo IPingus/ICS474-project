@@ -1,0 +1,28 @@
+[2025-12-19T02:50:00.615+0000] {taskinstance.py:1159} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: spark_streaming_dag.run_streaming scheduled__2025-12-19T02:49:00+00:00 [queued]>
+[2025-12-19T02:50:00.624+0000] {taskinstance.py:1159} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: spark_streaming_dag.run_streaming scheduled__2025-12-19T02:49:00+00:00 [queued]>
+[2025-12-19T02:50:00.625+0000] {taskinstance.py:1361} INFO - Starting attempt 1 of 2
+[2025-12-19T02:50:00.641+0000] {taskinstance.py:1382} INFO - Executing <Task(PythonOperator): run_streaming> on 2025-12-19 02:49:00+00:00
+[2025-12-19T02:50:00.649+0000] {standard_task_runner.py:57} INFO - Started process 61020 to run task
+[2025-12-19T02:50:00.652+0000] {standard_task_runner.py:84} INFO - Running: ['***', 'tasks', 'run', 'spark_streaming_dag', 'run_streaming', 'scheduled__2025-12-19T02:49:00+00:00', '--job-id', '317', '--raw', '--subdir', 'DAGS_FOLDER/streaming_dag.py', '--cfg-path', '/tmp/tmpfzc4mnyu']
+[2025-12-19T02:50:00.655+0000] {standard_task_runner.py:85} INFO - Job 317: Subtask run_streaming
+[2025-12-19T02:50:00.716+0000] {task_command.py:416} INFO - Running <TaskInstance: spark_streaming_dag.run_streaming scheduled__2025-12-19T02:49:00+00:00 [running]> on host c462a6f64de2
+[2025-12-19T02:50:00.814+0000] {taskinstance.py:1662} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='***' AIRFLOW_CTX_DAG_ID='spark_streaming_dag' AIRFLOW_CTX_TASK_ID='run_streaming' AIRFLOW_CTX_EXECUTION_DATE='2025-12-19T02:49:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2025-12-19T02:49:00+00:00'
+[2025-12-19T02:50:09.075+0000] {spark_utils.py:25} INFO - Spark connection created successfully!
+[2025-12-19T02:50:11.173+0000] {spark_utils.py:43} INFO - kafka dataframe created successfully
+[2025-12-19T02:50:11.694+0000] {data_processing.py:49} INFO - Schema applied and JSON parsed.
+[2025-12-19T02:50:11.727+0000] {data_processing.py:53} INFO - Dropped records with null id, email, or registered_date.
+[2025-12-19T02:50:11.776+0000] {data_processing.py:61} INFO - Applied business rule validation.
+[2025-12-19T02:50:11.794+0000] {data_processing.py:65} INFO - Deduplicated based on id.
+[2025-12-19T02:50:11.804+0000] {cassandra_utils.py:15} WARNING - Cluster.__init__ called with contact_points specified, but no load_balancing_policy. In the next major version, this will raise an error; please specify a load-balancing policy. (contact_points = ['cassandra'], lbp = None)
+[2025-12-19T02:50:11.821+0000] {cassandra_utils.py:16} WARNING - Downgrading core protocol version from 66 to 65 for 172.18.0.2:9042. To avoid this, it is best practice to explicitly set Cluster(protocol_version) to the version supported by your cluster. http://datastax.github.io/python-driver/api/cassandra/cluster.html#cassandra.cluster.Cluster.protocol_version
+[2025-12-19T02:50:11.824+0000] {cassandra_utils.py:16} WARNING - Downgrading core protocol version from 65 to 5 for 172.18.0.2:9042. To avoid this, it is best practice to explicitly set Cluster(protocol_version) to the version supported by your cluster. http://datastax.github.io/python-driver/api/cassandra/cluster.html#cassandra.cluster.Cluster.protocol_version
+[2025-12-19T02:50:11.843+0000] {policies.py:289} INFO - Using datacenter 'datacenter1' for DCAwareRoundRobinPolicy (via host '172.18.0.2:9042'); if incorrect, please specify a local_dc to the constructor, or limit contact points to local cluster nodes
+[2025-12-19T02:50:12.086+0000] {cassandra_utils.py:18} INFO - Connected to Cassandra!
+[2025-12-19T02:50:12.089+0000] {logging_mixin.py:154} INFO - Keyspace created successfully!
+[2025-12-19T02:50:12.091+0000] {logging_mixin.py:154} INFO - Table created successfully!
+[2025-12-19T02:50:12.091+0000] {run_streaming.py:30} INFO - Streaming is being started...
+[2025-12-19T02:50:45.112+0000] {run_streaming.py:48} INFO - Mini-batch streaming finished
+[2025-12-19T02:50:45.115+0000] {python.py:194} INFO - Done. Returned value was: None
+[2025-12-19T02:50:45.131+0000] {taskinstance.py:1400} INFO - Marking task as SUCCESS. dag_id=spark_streaming_dag, task_id=run_streaming, execution_date=20251219T024900, start_date=20251219T025000, end_date=20251219T025045
+[2025-12-19T02:50:45.172+0000] {local_task_job_runner.py:228} INFO - Task exited with return code 0
+[2025-12-19T02:50:45.213+0000] {taskinstance.py:2778} INFO - 0 downstream tasks scheduled from follow-on schedule check

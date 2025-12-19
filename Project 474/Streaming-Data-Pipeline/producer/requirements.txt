@@ -1,0 +1,5 @@
+# === Kafka Client ===
+kafka-python==2.0.2
+
+# === Networking / Requests ===
+requests==2.31.0
