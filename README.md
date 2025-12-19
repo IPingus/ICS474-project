@@ -2,6 +2,8 @@
 
 This project sets up a **streaming** data pipeline using Docker Compose to orchestrate Apache Airflow, Apache Spark, Kafka, Cassandra, and Jupyter Notebook for real‑time data ingestion, processing, storage, and visualization.
 
+Credit to: https://github.com/supakunz/Streaming-Data-Pipeline
+
 ## Overview
 
 - Airflow orchestrates and schedules the Spark streaming DAG `spark_streaming_dag`.
